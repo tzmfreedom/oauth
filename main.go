@@ -5,14 +5,12 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/url"
 	"os"
-	"os/exec"
 	"strings"
 
+	"github.com/skratchdot/open-golang/open"
 	"github.com/urfave/cli"
+	"golang.org/x/oauth2"
 )
 
 var (
@@ -39,7 +37,7 @@ func main() {
 					Name: "authorize_url",
 				},
 				cli.StringFlag{
-					Name: "response_type",
+					Name:  "response_type",
 					Value: "code",
 				},
 				cli.StringFlag{
@@ -68,7 +66,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				authorize_url := c.String("authorize_url")
+				endpoint := c.String("endpoint")
 				response_type := c.String("response_type")
 				client_id := c.String("client_id")
 				client_secret := c.String("client_secret")
@@ -76,7 +74,7 @@ func main() {
 				scope := c.String("scope")
 				state := c.String("state")
 				if c.Bool("interactive") {
-					authorize_url = ask("authorize_url", "")
+					endpoint = ask("endpoint", "")
 					response_type = ask("response_type", "code")
 					client_id = ask("client_id", "")
 					client_secret = ask("client_secret", "")
@@ -89,21 +87,22 @@ func main() {
 					rand.Read(b)
 					state = base64.URLEncoding.EncodeToString(b)
 				}
-				auth_url := createAuthorizeUrl(
-					authorize_url,
-					response_type,
-					client_id,
-					client_secret,
-					redirect_uri,
-					scope,
-					state,
-				)
-				if c.Bool("open") {
-					if err := exec.Command("open", auth_url).Run(); err != nil {
-						return err
+				authConfig := &oauth2.Config{
+					Endpoint:     oauth2.Endpoint{AuthURL: endpoint},
+					ClientID:     client_id,
+					ClientSecret: client_secret,
+					RedirectURL:  redirect_uri,
+					Scopes:       strings.Split(scope, ","),
+				}
+				authURL := ""
+				switch response_type {
+				case "code":
+					authURL = authConfig.AuthCodeURL(state, nil)
+					if c.Bool("open") {
+						open.Start(authURL)
+					} else {
+						fmt.Println(authURL)
 					}
-				} else {
-					fmt.Println(auth_url)
 				}
 				return nil
 			},
@@ -117,7 +116,7 @@ func main() {
 					Name: "token_url",
 				},
 				cli.StringFlag{
-					Name: "grant_type",
+					Name:  "grant_type",
 					Value: "authorization_code",
 				},
 				cli.StringFlag{
@@ -138,56 +137,47 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				grant_type := c.String("grant_type")
-				token_url := c.String("token_url")
+				endpoint := c.String("endpoint")
 				client_id := c.String("client_id")
 				client_secret := c.String("client_secret")
 				redirect_uri := c.String("redirect_uri")
+				username := c.String("username")
+				password := c.String("password")
 				code := c.String("code")
 				if c.Bool("interactive") {
 					grant_type = ask("grant_type", "authorization_code")
-					token_url = ask("token_url", "")
+					endpoint = ask("endpoint", "")
 					client_id = ask("client_id", "")
 					client_secret = ask("client_secret", "")
 					redirect_uri = ask("redirect_uri", "")
 					code = ask("code", "")
 				}
-				r, err := requestToken(
-					grant_type,
-					token_url,
-					client_id,
-					client_secret,
-					redirect_uri,
-					code,
-				)
-				if err != nil {
-					return err
+				authConfig := &oauth2.Config{
+					Endpoint:     oauth2.Endpoint{TokenURL: endpoint},
+					ClientID:     client_id,
+					ClientSecret: client_secret,
+					RedirectURL:  redirect_uri,
 				}
-				body, err := ioutil.ReadAll(r.Body)
-				if err != nil {
-					return err
+				var token *oauth2.Token
+				var err error
+				switch grant_type {
+				case "code":
+					token, err = authConfig.Exchange(nil, code)
+					if err != nil {
+						return err
+					}
+				case "password":
+					token, err = authConfig.PasswordCredentialsToken(nil, username, password)
+					if err != nil {
+						return err
+					}
 				}
-				fmt.Println(body)
+				fmt.Println(token.AccessToken)
 				return nil
 			},
 		},
 	}
 	app.Run(os.Args)
-}
-
-func createAuthorizeUrl(authorize_url, response_type, client_id, client_secret, redirect_uri, scope, state string) string {
-	v := url.Values{}
-	v.Add("response_type", response_type)
-	v.Add("client_id", client_id)
-	v.Add("client_secret", client_secret)
-	v.Add("redirect_uri", redirect_uri)
-	if scope != "" {
-		v.Add("scope", scope)
-	}
-	if state != "" {
-		v.Add("state", state)
-	}
-
-	return authorize_url + "?" + v.Encode()
 }
 
 func ask(question, defaultAnswer string) string {
@@ -198,21 +188,4 @@ func ask(question, defaultAnswer string) string {
 		return defaultAnswer
 	}
 	return answer
-}
-
-func requestToken(grant_type, token_url, client_id, client_secret, redirect_uri string, code) (*http.Response, error) {
-	v := url.Values{}
-	v.Add("grant_type", grant_type)
-	v.Add("client_id", client_id)
-	v.Add("client_secret", client_secret)
-	v.Add("redirect_uri", redirect_uri)
-	v.Add("code", code)
-
-	req, _ := http.NewRequest("POST", token_url, strings.NewReader(v.Encode()))
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
 }
