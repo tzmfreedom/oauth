@@ -1,0 +1,8 @@
+package: github.com/tzmfreedom/oauth
+import:
+- package: github.com/skratchdot/open-golang
+  subpackages:
+  - open
+- package: github.com/urfave/cli
+  version: v1.19.1
+- package: golang.org/x/oauth2
