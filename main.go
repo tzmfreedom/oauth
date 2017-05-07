@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/k0kubun/pp"
 	"github.com/skratchdot/open-golang/open"
+	"github.com/tzmfreedom/oauth/provider"
 	"github.com/urfave/cli"
 	"golang.org/x/oauth2"
 )
@@ -78,25 +78,41 @@ func main() {
 					Name:  "port",
 					Value: 1234,
 				},
+				cli.StringFlag{
+					Name: "provider",
+				},
 			},
 			Action: func(c *cli.Context) error {
-				authorize_url := c.String("authorize_url")
-				token_url := c.String("token_url")
+				var authorize_url, token_url string
+				switch c.String("provider") {
+				case "salesforce":
+					authorize_url = provider.Salesforce.AuthURL
+					token_url = provider.Salesforce.TokenURL
+				default:
+					authorize_url = c.String("authorize_url")
+					token_url = c.String("token_url")
+
+				}
 				response_type := c.String("response_type")
 				client_id := c.String("client_id")
 				client_secret := c.String("client_secret")
 				redirect_uri := c.String("redirect_uri")
+				if c.Bool("auto") {
+					redirect_uri = fmt.Sprintf("http://localhost:%d", c.Int("port"))
+				}
 				scope := c.String("scope")
 				state := c.String("state")
 				if c.Bool("interactive") {
-					authorize_url = ask("authorize_url", "")
-					token_url = c.String("token_url")
-					response_type = ask("response_type", "code")
-					client_id = ask("client_id", "")
-					client_secret = ask("client_secret", "")
-					redirect_uri = ask("redirect_uri", "")
-					scope = ask("scope", "")
-					state = ask("state", "")
+					authorize_url = ask("authorize_url", authorize_url)
+					token_url = ask("token_url", token_url)
+					fmt.Println(response_type)
+					response_type = ask("response_type", response_type)
+					fmt.Println(response_type)
+					client_id = ask("client_id", client_id)
+					client_secret = ask("client_secret", client_secret)
+					redirect_uri = ask("redirect_uri", redirect_uri)
+					scope = ask("scope", scope)
+					state = ask("state", state)
 				}
 				if c.Bool("random_state") {
 					b := make([]byte, 32)
@@ -134,10 +150,39 @@ func main() {
 							RedirectURL:  redirect_uri,
 						}
 						token, err := authConfig.Exchange(context.Background(), code)
-						pp.Print(token)
 						if err != nil {
 							return err
 						}
+						fmt.Println(token.AccessToken)
+						ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
+						s.Shutdown(ctx)
+					} else if c.Bool("open") {
+						open.Start(authURL)
+					} else {
+						fmt.Println(authURL)
+					}
+				case "token":
+					authURL := authConfig.AuthCodeURL(state, oauth2.SetAuthURLParam("response_type", "token"))
+					if c.Bool("auto") {
+						receive := make(chan string)
+						s := &http.Server{
+							Addr: fmt.Sprintf(":%d", c.Int("port")),
+							Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+								if r.URL.Path == "/" {
+									w.Write([]byte("<script>location.href = '/close?' + location.hash.substring(1);</script>"))
+									w.(http.Flusher).Flush()
+								} else {
+									w.Write([]byte("<html><body>Close this window.</body></html>"))
+									w.(http.Flusher).Flush()
+									receive <- r.URL.Query().Get("access_token")
+								}
+							}),
+						}
+						go s.ListenAndServe()
+
+						open.Start(authURL)
+						accessToken := <-receive
+						fmt.Println(accessToken)
 						ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
 						s.Shutdown(ctx)
 					} else if c.Bool("open") {
@@ -223,9 +268,10 @@ func main() {
 }
 
 func ask(question, defaultAnswer string) string {
-	fmt.Print(question + " : ")
+	fmt.Printf("%s [%s]:", question, defaultAnswer)
 	reader := bufio.NewReader(os.Stdin)
 	answer, _ := reader.ReadString('\n')
+	answer = strings.TrimRight(answer, "\n")
 	if answer == "" {
 		return defaultAnswer
 	}
