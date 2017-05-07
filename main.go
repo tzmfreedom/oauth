@@ -2,12 +2,16 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/k0kubun/pp"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/urfave/cli"
 	"golang.org/x/oauth2"
@@ -37,6 +41,9 @@ func main() {
 					Name: "authorize_url",
 				},
 				cli.StringFlag{
+					Name: "token_url",
+				},
+				cli.StringFlag{
 					Name:  "response_type",
 					Value: "code",
 				},
@@ -64,9 +71,17 @@ func main() {
 				cli.BoolFlag{
 					Name: "open",
 				},
+				cli.BoolFlag{
+					Name: "auto",
+				},
+				cli.IntFlag{
+					Name:  "port",
+					Value: 1234,
+				},
 			},
 			Action: func(c *cli.Context) error {
-				endpoint := c.String("endpoint")
+				authorize_url := c.String("authorize_url")
+				token_url := c.String("token_url")
 				response_type := c.String("response_type")
 				client_id := c.String("client_id")
 				client_secret := c.String("client_secret")
@@ -74,7 +89,8 @@ func main() {
 				scope := c.String("scope")
 				state := c.String("state")
 				if c.Bool("interactive") {
-					endpoint = ask("endpoint", "")
+					authorize_url = ask("authorize_url", "")
+					token_url = c.String("token_url")
 					response_type = ask("response_type", "code")
 					client_id = ask("client_id", "")
 					client_secret = ask("client_secret", "")
@@ -88,17 +104,43 @@ func main() {
 					state = base64.URLEncoding.EncodeToString(b)
 				}
 				authConfig := &oauth2.Config{
-					Endpoint:     oauth2.Endpoint{AuthURL: endpoint},
+					Endpoint:     oauth2.Endpoint{AuthURL: authorize_url},
 					ClientID:     client_id,
 					ClientSecret: client_secret,
 					RedirectURL:  redirect_uri,
 					Scopes:       strings.Split(scope, ","),
 				}
-				authURL := ""
 				switch response_type {
 				case "code":
-					authURL = authConfig.AuthCodeURL(state, nil)
-					if c.Bool("open") {
+					authURL := authConfig.AuthCodeURL(state)
+					if c.Bool("auto") {
+						receive := make(chan string)
+						s := &http.Server{
+							Addr: fmt.Sprintf(":%d", c.Int("port")),
+							Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+								receive <- r.URL.Query().Get("code")
+								w.Write([]byte("<script>window.open('about:blank','_self').close()</script>"))
+								w.(http.Flusher).Flush()
+							}),
+						}
+						go s.ListenAndServe()
+
+						open.Start(authURL)
+						code := <-receive
+						authConfig := &oauth2.Config{
+							Endpoint:     oauth2.Endpoint{TokenURL: token_url},
+							ClientID:     client_id,
+							ClientSecret: client_secret,
+							RedirectURL:  redirect_uri,
+						}
+						token, err := authConfig.Exchange(context.Background(), code)
+						pp.Print(token)
+						if err != nil {
+							return err
+						}
+						ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
+						s.Shutdown(ctx)
+					} else if c.Bool("open") {
 						open.Start(authURL)
 					} else {
 						fmt.Println(authURL)
@@ -113,7 +155,7 @@ func main() {
 			Usage:   "get token command",
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name: "token_url",
+					Name: "endpoint",
 				},
 				cli.StringFlag{
 					Name:  "grant_type",
