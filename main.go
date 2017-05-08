@@ -98,8 +98,8 @@ func main() {
 						if authConfig.Endpoint.TokenURL == "" {
 							return errors.New("token_url rquired")
 						}
-						oauthDanceCodeGrant(state, authConfig)
-						return nil
+						err = oauthDanceCodeGrant(state, authConfig, c.Int("port"))
+						return err
 					}
 					authURL := authConfig.AuthCodeURL(state)
 					if c.Bool("open") {
@@ -109,8 +109,8 @@ func main() {
 					}
 				case "token":
 					if c.Bool("auto") {
-						oauthDanceImplicitGrant(state, authConfig)
-						return nil
+						err = oauthDanceImplicitGrant(state, authConfig, c.Int("port"))
+						return err
 					}
 					authURL := authConfig.AuthCodeURL(state, oauth2.SetAuthURLParam("response_type", "token"))
 					if c.Bool("open") {
@@ -203,7 +203,7 @@ func ask(question, defaultAnswer string) string {
 	}
 	return answer
 }
-func getResponseType(c *cli.Context) *oauth2.Config {
+func getResponseType(c *cli.Context) string {
 	responseType := c.String("response_type")
 	if c.Bool("interactive") {
 		responseType = ask("response_type", responseType)
@@ -211,7 +211,7 @@ func getResponseType(c *cli.Context) *oauth2.Config {
 	return responseType
 }
 
-func getOAuthConfig(c *cli.Context) (*oauth2.Config, errror) {
+func getOAuthConfig(c *cli.Context) (*oauth2.Config, error) {
 	var authorizeUrl, tokenUrl string
 	switch c.String("provider") {
 	case "salesforce":
@@ -268,10 +268,10 @@ func getState(c *cli.Context) string {
 	return state
 }
 
-func oauthDanceCodeGrant(state string, c *oauth2.Config) {
+func oauthDanceCodeGrant(state string, c *oauth2.Config, port int) error {
 	receive := make(chan string)
 	s := &http.Server{
-		Addr: fmt.Sprintf(":%d", c.Int("port")),
+		Addr: fmt.Sprintf(":%d", port),
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			receive <- r.URL.Query().Get("code")
 			w.Write([]byte("<script>window.open('about:blank','_self').close()</script>"))
@@ -286,15 +286,20 @@ func oauthDanceCodeGrant(state string, c *oauth2.Config) {
 	if err != nil {
 		return err
 	}
-	fmt.Println(token.AccessToken)
+	fmt.Println("AccessToken\t%s", token.AccessToken)
+	fmt.Println("RefreshToken\t%s", token.RefreshToken)
+	fmt.Println("TokenType\t%s", token.TokenType)
+	fmt.Println("Expiry\t%s", token.Expiry)
+
 	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
 	s.Shutdown(ctx)
+	return nil
 }
 
-func oauthDanceImplicitGrant(state string, c *oauth2.Config) {
+func oauthDanceImplicitGrant(state string, c *oauth2.Config, port int) error {
 	receive := make(chan string)
 	s := &http.Server{
-		Addr: fmt.Sprintf(":%d", c.Int("port")),
+		Addr: fmt.Sprintf(":%d", port),
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/" {
 				w.Write([]byte("<script>location.href = '/close?' + location.hash.substring(1);</script>"))
@@ -313,6 +318,7 @@ func oauthDanceImplicitGrant(state string, c *oauth2.Config) {
 	fmt.Println(accessToken)
 	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
 	s.Shutdown(ctx)
+	return nil
 }
 
 func getGrantType(c *cli.Context) string {
@@ -323,14 +329,14 @@ func getGrantType(c *cli.Context) string {
 	return grantType
 }
 
-func getPasswordCredentials(c *cli.Context) (username, password) {
-	username := c.String("username")
-	password := c.String("password")
+func getPasswordCredentials(c *cli.Context) (u, p string) {
+	u = c.String("username")
+	p = c.String("password")
 	if c.Bool("interactive") {
-		username = ask("username", username)
-		password = ask("password", password)
+		u = ask("username", u)
+		p = ask("password", p)
 	}
-	return username, password
+	return u, p
 
 }
 
