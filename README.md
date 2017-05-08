@@ -14,20 +14,14 @@ If you want to install zsh completion, add --zsh-completion option
 $ curl -sL http://install.freedom-man.com/oauth | bash -s -- --zsh-completion
 ```
 
-You can use docker to use spm command.
+For Windows user
 ```bash
-$ docker run --rm tzmfree/oauth install {REPO} u {USERNAME] -p {PASSWORD}
-
+$ (New-Object Net.WebClient).DownloadString('http://install.freedom-man.com/oauth.ps1') | iex
 ```
 
 If you want to use latest version, execute following command.
 ```bash
 $ go get -u github.com/tzmfreedom/oauth
-```
-
-For Windows user, use Linux virtual machine, such as docker or vagrant.
-```bash
-$ (New-Object Net.WebClient).DownloadString('http://install.freedom-man.com/oauth.ps1') | iex
 ```
 
 ## Usage
