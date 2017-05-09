@@ -12,11 +12,12 @@ test: glide
 	@go test -cover -v `glide novendor`
 
 .PHONY: install
-install: build
-	@go install .
+install:
+	@cp bin/$(NAME) /usr/local/bin/$(NAME)
 
 .PHONY: uninstall
 uninstall:
+	@rm /usr/local/bin/$(NAME)
 
 .PHONY: clean
 clean:
@@ -58,8 +59,7 @@ endif
 deps: glide
 	glide install
 
-.PHONY: bin/$(NAME) 
-bin/$(NAME): $(SRCS) format
+bin/$(NAME): $(SRCS)
 	go build -a -tags netgo -installsuffix netgo $(LDFLAGS) -o bin/$(NAME) .
 
 .PHONY: dist
