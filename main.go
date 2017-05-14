@@ -213,14 +213,10 @@ func getResponseType(c *cli.Context) string {
 
 func getOAuthConfig(c *cli.Context) (*oauth2.Config, error) {
 	var authorizeUrl, tokenUrl string
-	switch c.String("provider") {
-	case "salesforce":
-		authorizeUrl = provider.Salesforce.AuthURL
-		tokenUrl = provider.Salesforce.TokenURL
-	default:
-		authorizeUrl = c.String("authorize_url")
-		tokenUrl = c.String("token_url")
-
+	if c.String("provider") != "" {
+		endpoint := provider.GetEndpoint(c.String("provider"))
+		authorizeUrl = endpoint.AuthURL
+		tokenUrl = endpoint.TokenURL
 	}
 	clientId := c.String("client_id")
 	clientSecret := c.String("client_secret")
