@@ -276,16 +276,16 @@ func oauthDanceCodeGrant(state string, c *oauth2.Config, port int) error {
 	}
 	go s.ListenAndServe()
 
-	open.Start(c.AuthCodeURL(state, nil))
+	open.Start(c.AuthCodeURL(state))
 	code := <-receive
 	token, err := c.Exchange(context.Background(), code)
 	if err != nil {
 		return err
 	}
-	fmt.Println("AccessToken\t%s", token.AccessToken)
-	fmt.Println("RefreshToken\t%s", token.RefreshToken)
-	fmt.Println("TokenType\t%s", token.TokenType)
-	fmt.Println("Expiry\t%s", token.Expiry)
+	fmt.Println(fmt.Sprintf("AccessToken\t%s", token.AccessToken))
+	fmt.Println(fmt.Sprintf("RefreshToken\t%s", token.RefreshToken))
+	fmt.Println(fmt.Sprintf("TokenType\t%s", token.TokenType))
+	fmt.Println(fmt.Sprintf("Expiry\t%s", token.Expiry))
 
 	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
 	s.Shutdown(ctx)
