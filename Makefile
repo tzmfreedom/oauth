@@ -4,6 +4,8 @@ VERSION := 0.1.0
 REVISION := $(shell git rev-parse --short HEAD)
 LDFLAGS := -ldflags="-s -w -X \"main.Version=$(VERSION)\" -X \"main.Revision=$(REVISION)\"" 
 DIST_DIRS := find * -type d -exec
+DIST_NO_WINDOWS_DIRS := find * -type d -name "window*" -exec
+DIST_WINDOWS_DIRS := find * -type d -name "window*" -exec
 
 .DEFAULT_GOAL := bin/$(NAME)
 
@@ -68,4 +70,6 @@ dist:
 	$(DIST_DIRS) cp ../LICENSE {} \; && \
 	$(DIST_DIRS) cp ../README.md {} \; && \
 	$(DIST_DIRS) cp ../completions/zsh/_$(NAME) {} \; && \
-	$(DIST_DIRS) tar zcf $(NAME)-$(VERSION)-{}.tar.gz {} \;
+	$(DIST_NO_WINDOWS_DIRS) tar zcf $(NAME)-$(VERSION)-{}.tar.gz {} \; && \
+	$(DIST_WINDOWS_DIRS) zip -r $(NAME)-$(VERSION)-{}.zip {} \;
+
