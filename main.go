@@ -67,20 +67,20 @@ func main() {
 					Name: "random_state",
 				},
 				cli.BoolFlag{
-					Name: "interactive",
+					Name: "interactive, I",
 				},
 				cli.BoolFlag{
-					Name: "open",
+					Name: "open, O",
 				},
 				cli.BoolFlag{
-					Name: "auto",
+					Name: "auto, A",
 				},
 				cli.IntFlag{
 					Name:  "port",
 					Value: 1234,
 				},
 				cli.StringFlag{
-					Name: "provider",
+					Name: "provider, P",
 				},
 			},
 			Action: func(c *cli.Context) error {
@@ -150,7 +150,7 @@ func main() {
 					Name: "code",
 				},
 				cli.BoolFlag{
-					Name: "interactive",
+					Name: "interactive, I",
 				},
 			},
 			Action: func(c *cli.Context) error {
