@@ -270,7 +270,7 @@ func oauthDanceCodeGrant(state string, c *oauth2.Config, port int) error {
 		Addr: fmt.Sprintf(":%d", port),
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			receive <- r.URL.Query().Get("code")
-			w.Write([]byte("<script>window.open('about:blank','_self').close()</script>"))
+			w.Write([]byte("<script>window.open('about:blank','_self').close()</script>Close this window"))
 			w.(http.Flusher).Flush()
 		}),
 	}
