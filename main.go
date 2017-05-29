@@ -152,6 +152,9 @@ func main() {
 				cli.BoolFlag{
 					Name: "interactive, I",
 				},
+				cli.StringFlag{
+					Name: "provider, P",
+				},
 			},
 			Action: func(c *cli.Context) error {
 				authConfig, err := getOAuthConfig(c)
@@ -163,7 +166,7 @@ func main() {
 				}
 				var token *oauth2.Token
 				switch getGrantType(c) {
-				case "code":
+				case "authorization_code":
 					code := getCode(c)
 					if code == "" {
 						return errors.New("code required")
@@ -182,10 +185,10 @@ func main() {
 						return err
 					}
 				}
-				fmt.Println("AccessToken\t%s", token.AccessToken)
-				fmt.Println("RefreshToken\t%s", token.RefreshToken)
-				fmt.Println("TokenType\t%s", token.TokenType)
-				fmt.Println("Expiry\t%s", token.Expiry)
+				fmt.Println(fmt.Sprintf("AccessToken\t%s", token.AccessToken))
+				fmt.Println(fmt.Sprintf("RefreshToken\t%s", token.RefreshToken))
+				fmt.Println(fmt.Sprintf("TokenType\t%s", token.TokenType))
+				fmt.Println(fmt.Sprintf("Expiry\t%s", token.Expiry))
 				return nil
 			},
 		},
