@@ -215,19 +215,21 @@ func getResponseType(c *cli.Context) string {
 }
 
 func getOAuthConfig(c *cli.Context) (*oauth2.Config, error) {
-	var authorizeUrl, tokenUrl string
+	authorizeUrl := c.String("authorize_url")
+	tokenUrl := c.String("token_url")
+	clientId := c.String("client_id")
+	clientSecret := c.String("client_secret")
+	redirectUri := c.String("redirect_uri")
+	scope := c.String("scope")
+
 	if c.String("provider") != "" {
 		endpoint := provider.GetEndpoint(c.String("provider"))
 		authorizeUrl = endpoint.AuthURL
 		tokenUrl = endpoint.TokenURL
 	}
-	clientId := c.String("client_id")
-	clientSecret := c.String("client_secret")
-	redirectUri := c.String("redirect_uri")
 	if c.Bool("auto") {
 		redirectUri = fmt.Sprintf("http://localhost:%d", c.Int("port"))
 	}
-	scope := c.String("scope")
 	if c.Bool("interactive") {
 		authorizeUrl = ask("authorize_url", authorizeUrl)
 		tokenUrl = ask("token_url", tokenUrl)
