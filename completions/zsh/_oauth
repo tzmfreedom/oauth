@@ -1,0 +1,35 @@
+#compdef oauth
+
+function __oauth_subcommands() {
+  _values -w '' \
+    'authorize[execute authorize request]' \
+    'token[exchange token with code, implicit grant or password]'
+}
+
+function __oauth_provider() {
+  _values -w '' \
+    'google' \
+    'yahoo' \
+    'salesforce' \
+    'github' \
+    'facebook'
+}
+
+_arguments \
+  '(- 1)'{-h,--help}'[show help]' \
+  '(1)--version[show version]' \
+  '1: :__oauth_subcommands' \
+  '--authorize_url' \
+  '--token_url' \
+  '--response_type' \
+  '--client_id' \
+  '--client_secret' \
+  '--redirect_uri' \
+  '--scope' \
+  '--state' \
+  '--random_state' \
+  '--open' \
+  '--port' \
+  '--interactive[use interactive mode]' \
+  '--auto[use auto oauth dance]' \
+  '--provider[oauth provider, e.g) google, yahoo, salesforce, github, facebook]: :__oauth_provider'
