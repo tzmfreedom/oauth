@@ -206,13 +206,6 @@ func ask(question, defaultAnswer string) string {
 	}
 	return answer
 }
-func getResponseType(c *cli.Context) string {
-	responseType := c.String("response_type")
-	if c.Bool("interactive") {
-		responseType = ask("response_type", responseType)
-	}
-	return responseType
-}
 
 func getOAuthConfig(c *cli.Context) (*oauth2.Config, error) {
 	authorizeUrl := c.String("authorize_url")
@@ -254,19 +247,6 @@ func getOAuthConfig(c *cli.Context) (*oauth2.Config, error) {
 		RedirectURL:  redirectUri,
 		Scopes:       strings.Split(scope, ","),
 	}, nil
-}
-
-func getState(c *cli.Context) string {
-	state := c.String("state")
-	if c.Bool("interactive") {
-		state = ask("state", state)
-	}
-	if c.Bool("random_state") {
-		b := make([]byte, 32)
-		rand.Read(b)
-		state = base64.URLEncoding.EncodeToString(b)
-	}
-	return state
 }
 
 func oauthDanceCodeGrant(state string, c *oauth2.Config, port int) error {
@@ -322,8 +302,29 @@ func oauthDanceImplicitGrant(state string, c *oauth2.Config, port int) error {
 	return nil
 }
 
-func getGrantType(c *cli.Context) string {
-	grantType := c.String("grant_type")
+func getResponseType(c *cli.Context) (responseType string) {
+	responseType = c.String("response_type")
+	if c.Bool("interactive") {
+		responseType = ask("response_type", responseType)
+	}
+	return responseType
+}
+
+func getState(c *cli.Context) (state string) {
+	state = c.String("state")
+	if c.Bool("interactive") {
+		state = ask("state", state)
+	}
+	if c.Bool("random_state") {
+		b := make([]byte, 32)
+		rand.Read(b)
+		state = base64.URLEncoding.EncodeToString(b)
+	}
+	return state
+}
+
+func getGrantType(c *cli.Context) (grantType string) {
+	grantType = c.String("grant_type")
 	if c.Bool("interactive") {
 		grantType = ask("grant_type", "authorization_code")
 	}
@@ -341,8 +342,8 @@ func getPasswordCredentials(c *cli.Context) (u, p string) {
 
 }
 
-func getCode(c *cli.Context) string {
-	code := c.String("code")
+func getCode(c *cli.Context) (code string) {
+	code = c.String("code")
 	if c.Bool("interactive") {
 		code = ask("code", "")
 	}
