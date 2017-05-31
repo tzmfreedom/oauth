@@ -26,19 +26,30 @@ $ go get -u github.com/tzmfreedom/oauth
 
 ## Usage
 
-
+Authorize subcommand displays oauth2.0 authorize url by default.
 ```bash
 $ oauth authorize --client_id {client_id} --client_secret {client_secret} --redirect_uri {uri} --scope {scope} --state {state}
-$ oauth authorize --client_id {client_id} --client_secret {client_secret} --redirect_uri {uri} --scope {scope} --state_random
+```
+The parameters of client_id, client_secret, redirect_uri is required.
+You can use state_random option instead of state option to get random token
+
+If you set interactive option, you can set oauth2.0 parameters interactively.
+```bash
+$ oauth authorize --interactive
 ```
 
---open
+If you want to get token automatically, you can set auto option.
+```bash
+$ oauth authorize --interactive --auto
+```
+If auto option is set, it display token response information.
 
-token
+Token subcommand displays oauth2.0 token response information.
 ```bash
 $ oauth token --client_id {client_id} --client_secret {client_secret} --redirect_uri {uri} --code {code} --state {state}
 ```
 
+You can set interactive option in the same way as Authorize subcommand.
 ```bash
 $ oauth --interactive
 ```
