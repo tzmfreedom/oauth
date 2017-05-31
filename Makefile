@@ -10,7 +10,7 @@ DIST_WINDOWS_DIRS := find * -type d -name "window*" -exec
 .DEFAULT_GOAL := bin/$(NAME)
 
 .PHONY: test
-test: glide
+test:
 	@go test -cover -v `glide novendor`
 
 .PHONY: install
