@@ -1,6 +1,6 @@
 # OAuth Command
 
-Simple CLI to request OAuth(WIP)
+Simple CLI tool to request OAuth.
 
 ## Install
 
@@ -49,7 +49,7 @@ GLOBAL OPTIONS:
 ### Authorize
 
 ```
-ME:
+NAME:
    oauth authorize - authorize command
 
 USAGE:
